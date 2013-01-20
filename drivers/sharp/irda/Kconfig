@@ -1,0 +1,9 @@
+menu "SIR/FIR IrDA/IrSimple driver"
+
+comment "SHARP Infrared device drivers"
+
+config SHIRDA
+	bool "SHARP LR388G7 IrDA SIR/FIR driver"
+	default y
+
+endmenu

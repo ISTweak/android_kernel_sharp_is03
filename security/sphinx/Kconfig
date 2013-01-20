@@ -1,0 +1,8 @@
+config SPHINX_SECURITY
+	bool "Sphinx Security Module Support"
+	select SHPRESENTER
+	default y
+	help
+	  Enable Sphinx Security Modules.
+
+

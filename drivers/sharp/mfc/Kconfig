@@ -1,0 +1,16 @@
+#
+# FeliCa device configuration
+#
+
+menu "FeliCa driver"
+
+comment "SHARP FeliCa device drivers"
+
+config SHFELICA
+	bool "FeliCa device drivers"
+	depends on SERIAL_MSM && I2C && MSM_DEBUG_UART_NONE
+	default y
+	help
+	  Enable FeliCa driver.
+
+endmenu

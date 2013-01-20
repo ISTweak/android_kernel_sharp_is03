@@ -1,0 +1,18 @@
+# drivers/sharp/wifi/Kconfig
+
+menu "Wi-Fi Configuration"
+
+config BWPM
+	bool "BT/WLAN Power Management Support"
+	default y
+	help
+	  Power management implementation for BT, FM, and WLAN Functionality.
+
+config CSR_SYNERGY_WIFI
+	bool "CSR Synergy Wifi Support"
+	depends on BWPM
+	default y
+	help
+	  Enable CSR WiFi device driver.
+
+endmenu

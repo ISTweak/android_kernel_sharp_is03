@@ -1,0 +1,16 @@
+#
+# Presenter device configuration
+#
+
+menu "Presenter driver"
+
+comment "SHARP Presenter device drivers"
+
+config SHPRESENTER
+	bool "Presenter device drivers"
+	depends on SPHINX_SECURITY
+	default y
+	help
+	  Enable Presenter driver.
+
+endmenu
