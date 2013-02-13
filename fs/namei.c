@@ -830,7 +830,7 @@ fail:
 
 /*
  * This is a temporary kludge to deal with "automount" symlinks; proper
- * solution is to trigger them on follow_mount(), so that so_lookup()
+ * solution is to trigger them on follow_mount(), so that do_lookup()
  * would DTRT.  To be killed before 2.6.34-final.
  */
 static inline int follow_on_final(struct inode *inode, unsigned lookup_flags)

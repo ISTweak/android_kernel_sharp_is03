@@ -8,7 +8,6 @@
 #include <linux/bitmap.h>
 #include <linux/blkdev.h>
 #include <linux/bootmem.h>	/* for max_pfn/max_low_pfn */
-
 #include "blk.h"
 
 /*
@@ -16,12 +15,13 @@
  */
 static struct kmem_cache *iocontext_cachep;
 
-static void hlist_sched_dtor(struct io_context *ioc, struct hlist_head *list)
+static void cfq_dtor(struct io_context *ioc)
 {
-	if (!hlist_empty(list)) {
+	if (!hlist_empty(&ioc->cic_list)) {
 		struct cfq_io_context *cic;
 
-		cic = list_entry(list->first, struct cfq_io_context, cic_list);
+		cic = list_entry(ioc->cic_list.first, struct cfq_io_context,
+								cic_list);
 		cic->dtor(ioc);
 	}
 }
@@ -41,9 +41,7 @@ int put_io_context(struct io_context *ioc)
 		rcu_read_lock();
 		if (ioc->aic && ioc->aic->dtor)
 			ioc->aic->dtor(ioc->aic);
-
-		hlist_sched_dtor(ioc, &ioc->cic_list);
-		hlist_sched_dtor(ioc, &ioc->bfq_cic_list);
+		cfq_dtor(ioc);
 		rcu_read_unlock();
 
 		kmem_cache_free(iocontext_cachep, ioc);
@@ -53,38 +51,37 @@ int put_io_context(struct io_context *ioc)
 }
 EXPORT_SYMBOL(put_io_context);
 
-static void hlist_sched_exit(struct io_context *ioc, struct hlist_head *list)
+static void cfq_exit(struct io_context *ioc)
 {
 	rcu_read_lock();
 
-	if (!hlist_empty(list)) {
+	if (!hlist_empty(&ioc->cic_list)) {
 		struct cfq_io_context *cic;
 
-		cic = list_entry(list->first, struct cfq_io_context, cic_list);
+		cic = list_entry(ioc->cic_list.first, struct cfq_io_context,
+								cic_list);
 		cic->exit(ioc);
 	}
 	rcu_read_unlock();
 }
 
 /* Called by the exitting task */
-void exit_io_context(void)
+void exit_io_context(struct task_struct *task)
 {
 	struct io_context *ioc;
 
-	task_lock(current);
-	ioc = current->io_context;
-	current->io_context = NULL;
-	task_unlock(current);
+	task_lock(task);
+	ioc = task->io_context;
+	task->io_context = NULL;
+	task_unlock(task);
 
 	if (atomic_dec_and_test(&ioc->nr_tasks)) {
 		if (ioc->aic && ioc->aic->exit)
 			ioc->aic->exit(ioc->aic);
+		cfq_exit(ioc);
 
-		hlist_sched_exit(ioc, &ioc->cic_list);
-		hlist_sched_exit(ioc, &ioc->bfq_cic_list);
-
-		put_io_context(ioc);
 	}
+		put_io_context(ioc);
 }
 
 struct io_context *alloc_io_context(gfp_t gfp_flags, int node)
@@ -103,8 +100,6 @@ struct io_context *alloc_io_context(gfp_t gfp_flags, int node)
 		ret->aic = NULL;
 		INIT_RADIX_TREE(&ret->radix_root, GFP_ATOMIC | __GFP_HIGH);
 		INIT_HLIST_HEAD(&ret->cic_list);
-		INIT_RADIX_TREE(&ret->bfq_radix_root, GFP_ATOMIC | __GFP_HIGH);
-		INIT_HLIST_HEAD(&ret->bfq_cic_list);
 		ret->ioc_data = NULL;
 	}
 
