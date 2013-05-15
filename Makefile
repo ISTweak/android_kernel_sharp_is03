@@ -324,13 +324,12 @@ CHECK		= sparse
 CHECKFLAGS     := -D__linux__ -Dlinux -D__STDC__ -Dunix -D__unix__ \
 		  -Wbitwise -Wno-return-void $(CF)
 MODFLAGS	= -DMODULE
-COMMON_OPTIMIZE = -fgcse -fforce-addr -ffast-math -fsingle-precision-constant -marm -march=armv7-a -mfpu=neon -fgcse -ftree-vectorize -funswitch-loops -funroll-loops -fipa-cp-clone -pipe
-#COMMON_OPTIMIZE = -march=armv7-a -mtune=cortex-a8 -mfpu=neon -mfloat-abi=softfp -mabi=aapcs-linux -fforce-addr -fomit-frame-pointer -fstrength-reduce
-CFLAGS_MODULE   = $(MODFLAGS) $(COMMON_OPTIMIZE)
-AFLAGS_MODULE   = $(MODFLAGS) $(COMMON_OPTIMIZE)
+COMMON_OPT_FLAGS = -fgcse -fforce-addr -ffast-math -fsingle-precision-constant -marm -march=armv7-a -mfpu=neon -fgcse -ftree-vectorize -funswitch-loops -funroll-loops -fipa-cp-clone -pipe
+CFLAGS_MODULE   = $(MODFLAGS) $(COMMON_OPT_FLAGS)
+AFLAGS_MODULE   = $(MODFLAGS) $(COMMON_OPT_FLAGS)
 LDFLAGS_MODULE  = -T $(srctree)/scripts/module-common.lds
-CFLAGS_KERNEL	= $(COMMON_OPTIMIZE)
-AFLAGS_KERNEL	=
+CFLAGS_KERNEL	= $(COMMON_OPT_FLAGS)
+AFLAGS_KERNEL	= $(COMMON_OPT_FLAGS)
 CFLAGS_GCOV	= -fprofile-arcs -ftest-coverage
 
 
@@ -344,6 +343,7 @@ LINUXINCLUDE    := -Iinclude \
 KBUILD_CPPFLAGS := -D__KERNEL__
 
 KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
+		   -Wno-unused-but-set-variable -Wno-uninitialized \
 		   -fno-strict-aliasing -fno-common \
 		   -Werror-implicit-function-declaration \
 		   -Wno-format-security \
@@ -525,7 +525,7 @@ all: vmlinux
 ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
 KBUILD_CFLAGS	+= -Os
 else
-KBUILD_CFLAGS	+= -O2
+KBUILD_CFLAGS	+= -O4
 endif
 
 include $(srctree)/arch/$(SRCARCH)/Makefile
@@ -538,9 +538,6 @@ endif
 ifndef CONFIG_CC_STACKPROTECTOR
 KBUILD_CFLAGS += $(call cc-option, -fno-stack-protector)
 endif
-
-# This warning generated too much noise in a regular build.
-KBUILD_CFLAGS += $(call cc-disable-warning, unused-but-set-variable)
 
 ifdef CONFIG_FRAME_POINTER
 KBUILD_CFLAGS	+= -fno-omit-frame-pointer -fno-optimize-sibling-calls
@@ -570,7 +567,7 @@ CHECKFLAGS     += $(NOSTDINC_FLAGS)
 KBUILD_CFLAGS += $(call cc-option,-Wdeclaration-after-statement,)
 
 # disable pointer signed / unsigned warnings in gcc 4.0
-KBUILD_CFLAGS += $(call cc-disable-warning, pointer-sign)
+KBUILD_CFLAGS += $(call cc-option,-Wno-pointer-sign,)
 
 # disable invalid "can't wrap" optimizations for signed / pointers
 KBUILD_CFLAGS	+= $(call cc-option,-fno-strict-overflow)
